@@ -1,0 +1,66 @@
+data:
+    dataset: "RainSynAll100"
+    image_size: 128
+    channels: 3
+    num_workers: 8
+    data_dir: "/data2/gaoxx/videodetectron/"
+    conditional: True
+
+model:
+    in_channels: 3  # in_channels = z_channels(VQ)
+    out_ch: 3
+    ch: 128
+    ch_mult: [1, 2, 3, 4]
+    num_res_blocks: 2
+    attn_resolutions: [32,]
+    dropout: 0.0
+    ema_rate: 0.999
+    ema: True
+    resamp_with_conv: True
+
+VQmodel:
+    double_z: False
+    z_channels: 3
+    resolution: 256
+    in_channels: 3
+    out_ch: 3
+    ch: 128
+    ch_mult: [ 1,2,4 ]  # num_down = len(ch_mult)-1
+    num_res_blocks: 2
+    attn_resolutions: [ ]
+    dropout: 0.0
+    embed_dim: 3
+    n_embed: 8192
+    beta: 0.25
+
+Dit:
+    hidden_size: 1152
+    depth: 28
+    num_heads: 16
+    mlp_ratio: 4.0
+    learn_sigma: False
+
+diffusion:
+    beta_schedule: linear
+    beta_start: 0.0001
+    beta_end: 0.02
+    num_diffusion_timesteps: 1000
+
+training:
+    patch_n: 16
+    batch_size: 8
+    n_epochs: 20001
+#    n_iters: 2000000
+    snapshot_freq: 10
+    validation_freq: 10000
+
+sampling:
+    batch_size: 2
+    last_only: True
+
+optim:
+    weight_decay: 0.000
+    optimizer: "Adam"
+    lr: 0.0001
+    amsgrad: False
+    eps: 0.00000001
