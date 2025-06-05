@@ -13,6 +13,9 @@ import pandas as pd
 import joblib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
+import librosa
+import numpy as np
+
 
 class TIC:
     def __init__(self, config, args):
@@ -54,6 +57,10 @@ class TICDataset(torch.utils.data.Dataset):
         super().__init__()
         self.num_frames = []
         self.args = args
+
+        self.n_mfcc = getattr(args, 'n_mfcc', 13)  # MFCC特征维度
+        self.audio_sr = getattr(args, 'audio_sr', 16000)  # 音频采样率
+        self.max_audio_length = getattr(args, 'max_audio_length', 100)  # 最大音频序列长度
 
         if not isTest:
             train_list = dir + '/' + 'train_tic.txt'
@@ -109,6 +116,56 @@ class TICDataset(torch.utils.data.Dataset):
         # 重组路径
         new_path = os.path.join(dir_name, new_base)
         return new_path
+    
+    def get_audio_path(self, video_path):
+        """根据视频路径获取对应的音频文件路径"""
+        # 将视频目录转换为音频目录路径
+        audio_path = video_path.replace('/train/', '/train_audio/').replace('/test/', '/test_audio/')
+        # 查找音频文件（支持多种格式）
+        for ext in ['.wav', '.mp3', '.m4a', '.flac']:
+            audio_file = audio_path + ext
+            if os.path.exists(audio_file):
+                return audio_file
+        return None
+
+    def extract_mfcc_features(self, audio_path):
+        """提取MFCC特征"""
+        try:
+            # 加载音频
+            y, sr = librosa.load(audio_path, sr=self.audio_sr)
+            
+            # 如果音频太短，进行填充
+            if len(y) < sr * 0.5:  # 小于0.5秒
+                y = np.tile(y, int(sr * 0.5 / len(y)) + 1)[:int(sr * 0.5)]
+            
+            # 提取MFCC特征
+            mfcc = librosa.feature.mfcc(
+                y=y, sr=sr, n_mfcc=self.n_mfcc, n_fft=1024, hop_length=256
+            )
+            
+            # 添加差分特征
+            delta = librosa.feature.delta(mfcc)
+            delta2 = librosa.feature.delta(mfcc, order=2)
+            
+            # 合并特征 (39维：13 MFCC + 13 Delta + 13 Delta2)
+            features = np.concatenate([mfcc, delta, delta2], axis=0)
+            features = features.T  # 转置为 (时间, 特征)
+            
+            # 长度标准化
+            if features.shape[0] > self.max_audio_length:
+                features = features[:self.max_audio_length]
+            else:
+                # 填充到固定长度
+                pad_length = self.max_audio_length - features.shape[0]
+                features = np.pad(features, ((0, pad_length), (0, 0)), mode='constant')
+            
+            return torch.tensor(features, dtype=torch.float32)
+        
+        except Exception as e:
+            print(f"Error processing audio {audio_path}: {e}")
+            # 返回零特征作为备用
+            return torch.zeros((self.max_audio_length, self.n_mfcc * 3), dtype=torch.float32)
+
 
     def add_suffix_to_parent(self, original_path, suffix, depth=1):
         """
