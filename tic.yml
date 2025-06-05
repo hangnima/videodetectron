@@ -3,7 +3,7 @@ data:
     image_size: 128
     channels: 3
     num_workers: 8
-    data_dir: "/data/hym/sj/tic2"
+    data_dir: "/data/hym/tic3/videodetectron"
     conditional: True
 
 model:

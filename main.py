@@ -12,7 +12,7 @@ os.environ['CUDA_VISIBLE_DEVICES'] = "4"
 
 def parse_args_and_config():
     parser = argparse.ArgumentParser(description='Training TIC Models')
-    parser.add_argument("--config", default='/data2/gaoxx/videodetectron/tic.yml', type=str,
+    parser.add_argument("--config", default='/data/hym/tic3/videodetectron/tic.yml', type=str,
                         help="Path to the config file")
     parser.add_argument('--seed', default=61, type=int, metavar='N',
                         help='Seed for initializing training (default: 61)')
@@ -83,10 +83,10 @@ def main():
                  heads=8)
         net = net.to(device)
         net = nn.DataParallel(net, device_ids=device_ids)
-        ckpt = torch.load(f'{args.save_ckp}/ckp_199')
-        net.load_state_dict((ckpt['net']), strict=True)
+        #ckpt = torch.load(f'{args.save_ckp}/ckp_199')
+        #net.load_state_dict((ckpt['net']), strict=True)
         epoch = 0
-        epoch = ckpt['epoch']
+        #epoch = ckpt['epoch']
 
         # ---data load---
         data_loader = TIC(config,args)
