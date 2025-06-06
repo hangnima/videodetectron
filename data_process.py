@@ -15,7 +15,7 @@ def process_images(source_dir, target_dir):
 
     # 遍历源目录中的所有文件
     for filename in os.listdir(source_dir):
-        if not filename.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp', '.tiff')):
+        if not filename.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.wav')):
             continue
 
         # 提取帧号、类型和扩展名
@@ -138,7 +138,7 @@ def process_images(source_dir, target_dir):
 if __name__ == "__main__":
     # 配置路径
     for i in range(8,9):
-        source_directory = f"D:/code/videodetectron/data/TIC/test/{i}_process"  # 替换为您的源目录路径
-        target_directory = f"D:/code/videodetectron/data/TIC_new/test/{i}_process"  # 替换为目标目录路径
+        source_directory = f"/data/hym/tic3/videodetectron/data/TIC/test/{i}_wav"  # 替换为您的源目录路径
+        target_directory = f"/data/hym/tic3/videodetectron/data/TIC/test/{i}_wav"  # 替换为目标目录路径
 
         process_images(source_directory, target_directory)

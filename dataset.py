@@ -196,13 +196,16 @@ class TICDataset(torch.utils.data.Dataset):
             video = self.input_file[index]
             input_frames = []
             input_frames_skeletion = []
+            input_frames_audio = []
             label_frames = []
 
             input_dir = video
             # input_dir = self.add_skeleton_suffix(video, "process")
             input_dir_skeletion = self.add_suffix_to_parent(video, "skeleton", 1)
+            input_dir_audio = self.add_suffix_to_parent(video, "wav", 1)
             frame_list = glob.glob(os.path.join(input_dir, '*.jpg'))
             frame_list_skeletion = glob.glob(os.path.join(input_dir_skeletion, '*.jpg'))
+            frame_list_audio = glob.glob(os.path.join(input_dir_audio, '*.wav'))
             # frame_list.sort()
             # frame_list_skeletion.sort()
 
@@ -210,6 +213,7 @@ class TICDataset(torch.utils.data.Dataset):
             # for t in range(0, N):
                 input_frame = cv2.imread(frame_list[t])
                 input_frame_skeletion = cv2.imread(frame_list_skeletion[t])
+                input_frame_audio = self.extract_mfcc_features(frame_list_audio[t])
                 input_frame = cv2.cvtColor(input_frame, cv2.COLOR_BGR2RGB)
                 input_frame_skeletion = cv2.cvtColor(input_frame_skeletion, cv2.COLOR_BGR2RGB)
                 input_frame = Image.fromarray(input_frame)
@@ -217,6 +221,7 @@ class TICDataset(torch.utils.data.Dataset):
 
                 input_frames.append(self.transforms(input_frame))
                 input_frames_skeletion.append(self.transforms(input_frame_skeletion))
+                input_frames_audio.append(input_frame_audio)
 
                 name_without_ext = os.path.splitext(frame_list[t])[0]
                 parts = name_without_ext.rsplit('_', 1)
@@ -227,8 +232,8 @@ class TICDataset(torch.utils.data.Dataset):
             input_frames = torch.stack(input_frames, 0)
             label_frames = torch.stack(label_frames, 0)
             input_frames_skeletion = torch.stack(input_frames_skeletion, 0)
-
-            return torch.cat([input_frames, input_frames_skeletion], dim=1), label_frames
+            input_frames_audio = torch.stack(input_frames_audio, 0)
+            return torch.cat([input_frames, input_frames_skeletion], dim=1), input_frames_audio, label_frames
 
         else:
             N = self.num_frames[index]
@@ -259,6 +264,7 @@ class TICDataset(torch.utils.data.Dataset):
 
                 input_frames.append(self.transforms(input_frame))
                 input_frames_skeletion.append(self.transforms(input_frame_skeletion))
+                input_frames_audio.append(input_frame_audio)
 
                 name_without_ext = os.path.splitext(frame_list[t])[0]
                 parts = name_without_ext.rsplit('_', 1)
@@ -269,8 +275,8 @@ class TICDataset(torch.utils.data.Dataset):
             input_frames = torch.stack(input_frames, 0)
             label_frames = torch.stack(label_frames, 0)
             input_frames_skeletion = torch.stack(input_frames_skeletion, 0)
-
-            return torch.cat([input_frames, input_frames_skeletion], dim=1), label_frames
+            input_frames_audio = torch.stack(input_frames_audio, 0)
+            return torch.cat([input_frames, input_frames_skeletion], dim=1), input_frames_audio, label_frames
 
     def __getitem__(self, index):
         res = self.get_images(index)

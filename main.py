@@ -102,10 +102,13 @@ def main():
 
             adjust_learning_rate(optimizer, epoch, num_epochs, args.learning_rate, args.learning_rate_max)
             start=time.time()
-            for i, (data,label) in enumerate(train_loader):
-                input_frame, input_frame_skeleton = data[:,:,:3,:],data[:,:,3:,:]
+            for i, (data, audio, label) in enumerate(train_loader):
+                input_frame, input_frame_skeleton = data[:, :, :3, :], data[:, :, 3:, :]
                 input_frame = input_frame.to(device)
                 input_frame_skeleton = input_frame_skeleton.to(device)
+                input_frame_audio = audio.to(device)
+                print(input_frame_audio.shape)
+                print(input_frame.shape)
                 # label = label[:,args.window_size:-args.window_size,:].to(device)
                 label = label.to(device)
                 B, T, C, H, W = input_frame.shape
@@ -167,10 +170,11 @@ def main():
         data_loader = TIC(config, args)
         _, val_loader = data_loader.get_loaders()
 
-        for i, (data, label) in enumerate(val_loader):
+        for i, (data, audio, label) in enumerate(val_loader):
             input_frame, input_frame_skeleton = data[:, :, :3, :], data[:, :, 3:, :]
             input_frame = input_frame.to(device)
             input_frame_skeleton = input_frame_skeleton.to(device)
+            input_frame_audio = audio.to(device)
             label = label.to(device)
             label_len = label.size(2)
             label_flat = torch.argmax(label.view(-1, label_len), dim=1)
