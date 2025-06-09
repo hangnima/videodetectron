@@ -26,7 +26,7 @@ def parse_args_and_config():
                         type=str)
     parser.add_argument('-save_ckp', help='the place to save pic', default='./ckp/',
                         type=str)
-    parser.add_argument('-is_train', help='train or test', default=True,
+    parser.add_argument('-is_train', help='train or test', default=False,
                         type=bool)
     parser.add_argument('--labels', type=list, default=['None', 'face-tic', 'head-tic', 'body-tic', 'vocal-tic'], help='text label')
     args = parser.parse_args()
@@ -124,7 +124,8 @@ def main():
 
                 # --- Forward + Backward + Optimize --- #
                 net.train()
-                classifer = net(input_frame.permute(0, 2, 1, 3, 4), input_frame_skeleton.permute(0, 2, 1, 3, 4))
+                classifer = net(input_frame.permute(0, 2, 1, 3, 4), input_frame_skeleton.permute(0, 2, 1, 3, 4),
+                                input_frame_audio)
                 # classifer = net(input_frame, input_frame_skeleton)
                 # --- Calculate Total loss --- #
                 total_loss = criterion(classifer.view(-1,label_len), label_flat)
@@ -157,6 +158,7 @@ def main():
     else:
         # ---define network---
         # net = TicDetector(args)
+        '''
         net = VideoTransformer2(args, num_classes=5,
                                img_size=224,
                                patch_size=16,
@@ -164,9 +166,11 @@ def main():
                                dim=768,
                                depth=12,
                                heads=8)
+        '''
+        net = MultiModalTicDetector(args)
         net = net.to(device)
         net = nn.DataParallel(net, device_ids=device_ids)
-        ckpt = torch.load(f'{args.save_ckp}/ckp_199')
+        ckpt = torch.load(f'{args.save_ckp}/ckp_99')
         net.load_state_dict((ckpt['net']), strict=True)
         net.eval()
 
@@ -188,10 +192,20 @@ def main():
             # classifer = net(input_frame, input_frame_skeleton)
             classifer = []
             for j in range(0, T//args.sample_frames):
-                input_frame_temp = input_frame[:, j * args.sample_frames:(j + 1) * args.sample_frames,:, :, :]
-                input_frame_skeleton_temp = input_frame_skeleton[:,j*args.sample_frames:(j+1)*args.sample_frames,:,:,:]
-                # classifer.append(net(input_frame_skeleton_temp.permute(0, 2, 1, 3, 4)))
-                classifer.append(net(input_frame_temp.permute(0, 2, 1, 3, 4), input_frame_skeleton_temp.permute(0, 2, 1, 3, 4)))
+                # 视频数据切片 [batch, time, channels, height, width]
+                input_frame_temp = input_frame[:, j * args.sample_frames:(j + 1) * args.sample_frames, :, :, :]
+                input_frame_skeleton_temp = input_frame_skeleton[:, j * args.sample_frames:(j + 1) * args.sample_frames, :, :, :]
+                
+                # 音频数据切片 [batch, time, audio_length, features] - 只有4维
+                input_frame_audio_temp = input_frame_audio[:, j * args.sample_frames:(j + 1) * args.sample_frames, :, :]
+                
+                # 调用模型
+                classifer.append(net(
+                    input_frame_temp.permute(0, 2, 1, 3, 4), 
+                    input_frame_skeleton_temp.permute(0, 2, 1, 3, 4), 
+                    input_frame_audio_temp
+                ))
+
                 # classifer.append(net(input_frame_temp, input_frame_skeleton_temp))
 
             classifer = torch.stack(classifer,dim=0)
