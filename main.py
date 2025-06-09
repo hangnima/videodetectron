@@ -26,7 +26,7 @@ def parse_args_and_config():
                         type=str)
     parser.add_argument('-save_ckp', help='the place to save pic', default='./ckp/',
                         type=str)
-    parser.add_argument('-is_train', help='train or test', default=False,
+    parser.add_argument('-is_train', help='train or test', default=True,
                         type=bool)
     parser.add_argument('--labels', type=list, default=['None', 'face-tic', 'head-tic', 'body-tic', 'vocal-tic'], help='text label')
     args = parser.parse_args()

@@ -117,6 +117,8 @@ class TICDataset(torch.utils.data.Dataset):
         new_path = os.path.join(dir_name, new_base)
         return new_path
     
+    
+    
     def get_audio_path(self, video_path):
         """根据视频路径获取对应的音频文件路径"""
         # 将视频目录转换为音频目录路径
@@ -243,13 +245,17 @@ class TICDataset(torch.utils.data.Dataset):
             video = self.input_file[index]
             input_frames = []
             input_frames_skeletion = []
+            input_frames_audio = []
             label_frames = []
 
             input_dir = video
             # input_dir = self.add_skeleton_suffix(video, "process")
             input_dir_skeletion = self.add_skeleton_suffix(video, "skeleton")
+            input_dir_audio = self.add_skeleton_suffix(video, "wav")
+            print(input_dir_audio)
             frame_list = glob.glob(os.path.join(input_dir, '*.jpg'))
             frame_list_skeletion = glob.glob(os.path.join(input_dir_skeletion, '*.jpg'))
+            frame_list_audio = glob.glob(os.path.join(input_dir_audio, '*.wav'))
             frame_list.sort()
             frame_list_skeletion.sort()
 
@@ -258,6 +264,7 @@ class TICDataset(torch.utils.data.Dataset):
             # for t in range(0, 100):
                 input_frame = cv2.imread(frame_list[t])
                 input_frame_skeletion = cv2.imread(frame_list_skeletion[t])
+                input_frame_audio = self.extract_mfcc_features(frame_list_audio[t])
                 # print(frame_list_skeletion[t])
                 input_frame = cv2.cvtColor(input_frame, cv2.COLOR_BGR2RGB)
                 input_frame_skeletion = cv2.cvtColor(input_frame_skeletion, cv2.COLOR_BGR2RGB)
