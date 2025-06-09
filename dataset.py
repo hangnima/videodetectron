@@ -206,6 +206,8 @@ class TICDataset(torch.utils.data.Dataset):
             frame_list = glob.glob(os.path.join(input_dir, '*.jpg'))
             frame_list_skeletion = glob.glob(os.path.join(input_dir_skeletion, '*.jpg'))
             frame_list_audio = glob.glob(os.path.join(input_dir_audio, '*.wav'))
+            if(len(frame_list_audio) != len(frame_list)):
+                print(f"错误: {video} 的音频文件数量与图像文件数量不匹配")
             # frame_list.sort()
             # frame_list_skeletion.sort()
 

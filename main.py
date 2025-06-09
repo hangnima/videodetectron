@@ -2,13 +2,14 @@ import time
 
 from network import TicLoss, TicDetector, VideoTransformer
 from network2 import VideoTransformer2
+from network3 import MultiModalTicDetector
 from dataset import TIC
 import argparse
 import os
 import yaml
 import torch
 import torch.nn as nn
-os.environ['CUDA_VISIBLE_DEVICES'] = "4"
+os.environ['CUDA_VISIBLE_DEVICES'] = "2"
 
 def parse_args_and_config():
     parser = argparse.ArgumentParser(description='Training TIC Models')
@@ -64,7 +65,7 @@ def main():
     args, config = parse_args_and_config()
     tic_data = TIC(config, args)
     train_loader, val_loader = tic_data.get_loaders()
-    num_epochs = 1000
+    num_epochs = 100
 
     # --- Gpu device --- #
     # device_ids = [Id for Id in range(torch.cuda.device_count())]
@@ -73,7 +74,9 @@ def main():
 
     if args.is_train==True:
         # ---define network---
-        # net = TicDetector(args)
+        net = MultiModalTicDetector(args)
+        #net = TicDetector(args)
+        '''
         net = VideoTransformer2(args,num_classes=5,
                  img_size=224,
                  patch_size=16,
@@ -81,6 +84,7 @@ def main():
                  dim=768,
                  depth=12,
                  heads=8)
+        '''
         net = net.to(device)
         net = nn.DataParallel(net, device_ids=device_ids)
         #ckpt = torch.load(f'{args.save_ckp}/ckp_199')
@@ -107,8 +111,8 @@ def main():
                 input_frame = input_frame.to(device)
                 input_frame_skeleton = input_frame_skeleton.to(device)
                 input_frame_audio = audio.to(device)
-                print(input_frame_audio.shape)
-                print(input_frame.shape)
+                #print(input_frame_audio.shape)
+                #print(input_frame.shape)
                 # label = label[:,args.window_size:-args.window_size,:].to(device)
                 label = label.to(device)
                 B, T, C, H, W = input_frame.shape

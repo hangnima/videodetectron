@@ -1,0 +1,227 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Audio Process - 音频文件组织工具
+根据参考目录的结构，将音频文件按照相同的文件夹结构进行组织
+"""
+
+import os
+import shutil
+import sys
+from pathlib import Path
+
+
+def get_reference_structure(reference_dir):
+    """
+    获取参考目录的文件结构
+    返回字典: {不含扩展名的文件名: 相对路径}
+    """
+    structure = {}
+    
+    if not os.path.exists(reference_dir):
+        print(f"错误: 参考目录 '{reference_dir}' 不存在")
+        return structure
+    
+    try:
+        for root, dirs, files in os.walk(reference_dir):
+            # 获取相对于参考目录的路径
+            rel_path = os.path.relpath(root, reference_dir)
+            if rel_path == '.':
+                rel_path = ''
+            
+            for file_name in files:
+                # 去掉扩展名作为键
+                name_without_ext = os.path.splitext(file_name)[0]
+                structure[name_without_ext] = rel_path
+                
+    except Exception as e:
+        print(f"读取参考目录时发生错误: {e}")
+    
+    return structure
+
+
+def get_wav_files(audio_dir):
+    """
+    获取音频目录下所有的wav文件
+    返回字典: {不含扩展名的文件名: 完整文件路径}
+    """
+    wav_files = {}
+    
+    if not os.path.exists(audio_dir):
+        print(f"错误: 音频目录 '{audio_dir}' 不存在")
+        return wav_files
+    
+    try:
+        for root, dirs, files in os.walk(audio_dir):
+            for file_name in files:
+                if file_name.lower().endswith('.wav'):
+                    name_without_ext = os.path.splitext(file_name)[0]
+                    full_path = os.path.join(root, file_name)
+                    wav_files[name_without_ext] = full_path
+                    
+    except Exception as e:
+        print(f"读取音频目录时发生错误: {e}")
+    
+    return wav_files
+
+
+def organize_audio_files(audio_dir, reference_dir, output_dir):
+    """
+    根据参考目录结构组织音频文件
+    """
+    print(f"音频目录: {os.path.abspath(audio_dir)}")
+    print(f"参考目录: {os.path.abspath(reference_dir)}")
+    print(f"输出目录: {os.path.abspath(output_dir)}")
+    print("-" * 60)
+    
+    # 获取参考目录结构
+    print("正在分析参考目录结构...")
+    reference_structure = get_reference_structure(reference_dir)
+    
+    if not reference_structure:
+        print("参考目录为空或无法读取")
+        return
+    
+    print(f"参考目录中找到 {len(reference_structure)} 个文件")
+    
+    # 获取音频文件
+    print("正在扫描音频文件...")
+    wav_files = get_wav_files(audio_dir)
+    
+    if not wav_files:
+        print("音频目录中没有找到wav文件")
+        return
+    
+    print(f"音频目录中找到 {len(wav_files)} 个wav文件")
+    print("-" * 60)
+    
+    # 创建输出目录
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # 统计信息
+    copied_count = 0
+    not_found_count = 0
+    not_found_files = []
+    
+    # 根据参考结构组织音频文件
+    for file_name, rel_path in reference_structure.items():
+        if file_name in wav_files:
+            # 创建目标目录
+            if rel_path:
+                target_dir = os.path.join(output_dir, rel_path)
+            else:
+                target_dir = output_dir
+            
+            os.makedirs(target_dir, exist_ok=True)
+            
+            # 复制文件
+            source_file = wav_files[file_name]
+            target_file = os.path.join(target_dir, f"{file_name}.wav")
+            
+            try:
+                shutil.copy2(source_file, target_file)
+                print(f"✅ 复制: {file_name}.wav -> {rel_path or '根目录'}")
+                copied_count += 1
+            except Exception as e:
+                print(f"❌ 复制失败: {file_name}.wav - {e}")
+        else:
+            not_found_count += 1
+            not_found_files.append(file_name)
+            print(f"⚠️  未找到对应的音频文件: {file_name}.wav")
+    
+    # 输出统计结果
+    print("-" * 60)
+    print("处理完成!")
+    print(f"成功复制: {copied_count} 个文件")
+    print(f"未找到音频: {not_found_count} 个文件")
+    
+    if not_found_files and len(not_found_files) <= 10:
+        print("\n未找到的音频文件:")
+        for file_name in not_found_files:
+            print(f"  - {file_name}.wav")
+    elif not_found_files:
+        print(f"\n未找到的音频文件过多，仅显示前10个:")
+        for file_name in not_found_files[:10]:
+            print(f"  - {file_name}.wav")
+        print(f"  ... 还有 {len(not_found_files) - 10} 个文件未显示")
+    
+    # 检查是否有多余的音频文件
+    reference_names = set(reference_structure.keys())
+    wav_names = set(wav_files.keys())
+    extra_audio = wav_names - reference_names
+    
+    if extra_audio:
+        print(f"\n音频目录中有 {len(extra_audio)} 个文件在参考目录中没有对应文件:")
+        if len(extra_audio) <= 10:
+            for file_name in sorted(extra_audio):
+                print(f"  - {file_name}.wav")
+        else:
+            for file_name in sorted(list(extra_audio)[:10]):
+                print(f"  - {file_name}.wav")
+            print(f"  ... 还有 {len(extra_audio) - 10} 个文件未显示")
+
+
+def main():
+    """
+    主函数
+    """
+    print("Audio Process - 音频文件组织工具")
+    print("=" * 60)
+    
+    # 获取参数
+    if len(sys.argv) >= 4:
+        audio_dir = sys.argv[1]
+        reference_dir = sys.argv[2]
+        output_dir = sys.argv[3]
+    else:
+        print("使用方法:")
+        print("python audio_process.py <音频目录> <参考目录> <输出目录>")
+        print()
+        print("或者按提示输入:")
+        
+        audio_dir = input("请输入音频目录路径 (包含wav文件): ").strip()
+        reference_dir = input("请输入参考目录路径 (包含目录结构): ").strip()
+        output_dir = input("请输入输出目录路径: ").strip()
+    
+    # 验证输入
+    if not audio_dir or not reference_dir or not output_dir:
+        print("错误: 所有路径都不能为空")
+        return
+    
+    if not os.path.exists(audio_dir):
+        print(f"错误: 音频目录 '{audio_dir}' 不存在")
+        return
+    
+    if not os.path.exists(reference_dir):
+        print(f"错误: 参考目录 '{reference_dir}' 不存在")
+        return
+    
+    if not os.path.isdir(audio_dir):
+        print(f"错误: '{audio_dir}' 不是一个目录")
+        return
+    
+    if not os.path.isdir(reference_dir):
+        print(f"错误: '{reference_dir}' 不是一个目录")
+        return
+    
+    # 如果输出目录已存在，询问是否继续
+    if os.path.exists(output_dir) and os.listdir(output_dir):
+        response = input(f"\n输出目录 '{output_dir}' 已存在且不为空，是否继续? (y/N): ").strip().lower()
+        if response not in ['y', 'yes', '是']:
+            print("操作已取消")
+            return
+    
+    print()
+    
+    # 执行组织操作
+    try:
+        organize_audio_files(audio_dir, reference_dir, output_dir)
+    except KeyboardInterrupt:
+        print("\n\n程序被用户中断")
+    except Exception as e:
+        print(f"\n程序执行出错: {e}")
+
+
+if __name__ == "__main__":
+    main()
+

@@ -137,8 +137,8 @@ def process_images(source_dir, target_dir):
 
 if __name__ == "__main__":
     # 配置路径
-    for i in range(8,9):
-        source_directory = f"/data/hym/tic3/videodetectron/data/TIC/test/{i}_wav"  # 替换为您的源目录路径
-        target_directory = f"/data/hym/tic3/videodetectron/data/TIC/test/{i}_wav"  # 替换为目标目录路径
+    for i in range(9,10):
+        source_directory = f"/data/hym/tic3/videodetectron/data/TIC/train/{i}_wav"  # 替换为您的源目录路径
+        target_directory = f"/data/hym/tic3/videodetectron/data/TIC/train/{i}_wav"  # 替换为目标目录路径
 
         process_images(source_directory, target_directory)
